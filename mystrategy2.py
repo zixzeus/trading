@@ -1,7 +1,12 @@
 from datetime import datetime
 import backtrader as bt
-from basic import read_data,transfer_period
+from utils.basic import read_data,transfer_period
 import pandas as pd
+import os
+import sys
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
 # Create a subclass of Strategy to define the indicators and logic
 
 class MyStrategy(bt.Strategy):
@@ -39,7 +44,7 @@ cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 # data = bt.feeds.YahooFinanceData(dataname='MSFT',
 #                                  fromdate=datetime(2011, 1, 1),
 #                                  todate=datetime(2012, 12, 31))
-dfdata = read_data('../data/SA/SA主力连续.csv')
+dfdata = read_data('../trading/data/SA/SA主力连续.csv')
 dfday = transfer_period(dfdata, "D")
 dfday['date'] = pd.to_datetime(dfday.index)
 dfday['date'] = dfday['date'].apply(lambda x: x.strftime('%Y-%m-%d'))
@@ -52,9 +57,9 @@ cerebro.broker.setcash(100000.0)
 cerebro.broker.setcommission(commission=0.00025,leverage=5,mult=20)
 # cerebro.addsizer(bt.sizers.PercentSizerInt, percents=60)
 # Add a FixedSize sizer according to the stake
-cerebro.addsizer(bt.sizers.FixedSize, stake=1)
+# cerebro.addsizer(bt.sizers.FixedSize, stake=1)
 
-
+cerebro.addsizer(bt.sizers.PercentSizerInt,percents=60)
 # Set the commission
 
 
