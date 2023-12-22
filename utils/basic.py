@@ -60,7 +60,7 @@ def show_pattern(dfday,pattern,pattern_name,save=False):
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
     plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
     if save == True and not os.path.exists(f"{pattern_name}.png"):
-        plt.savefig(f"{pattern_name}.png", dpi=600)
+        plt.savefig(f"../trading/pictures/{pattern_name}.png", dpi=600)
     plt.show()
 
 
