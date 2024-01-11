@@ -1,5 +1,22 @@
 from scipy.stats import norm
 from math import log,exp,sqrt
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+class HistoryData:
+    def __init__(self,filepath):
+        self.data = pd.read_csv(filepath,encoding = 'utf-8')
+        self.data['Date'] = pd.to_datetime(self.data['Date'])
+        self.data = self.data.dropna(axis=0)
+
+    def history_vol(self):
+        self.data["return"] = np.log(self.data["Price"]/self.data["Price"].shift(1))
+        self.data["vol"] = self.data["return"].rolling(21).std()*sqrt(252)
+        plt.plot(self.data["Date"], self.data["vol"])
+        plt.title("silver's history vol")
+        plt.xlabel("Date")
+        plt.ylabel("History vol")
+        plt.show()
 
 class Calculator:
     def __init__(self,current_price,target_price,left_time,volatility,direction):
@@ -49,16 +66,21 @@ class Calculator:
 
 
 if __name__ == '__main__':
-    current_price=1867
-    target_price=2000
-    left_time =92
-    volatility = 0.3662
-    direction = "CALL"
+    current_price=4459
+    target_price=4000
+    left_time =300
+    volatility = 0.1763
+    direction = "PUT"
 
     ca = Calculator(current_price,target_price,left_time,volatility,direction)
     print(ca.probability())
 
     print(ca.predicate_price_span(0.99))
+
+
+    filepath = "../data/silver.csv"
+    silver_his = HistoryData(filepath)
+    silver_his.history_vol()
 
 
 
