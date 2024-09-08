@@ -9,6 +9,7 @@ import sys  # To find out the script name (in argv[0])
 import backtrader as bt
 import pandas as pd
 
+
 # Create a Stratey
 class TestStrategy(bt.Strategy):
 
@@ -36,8 +37,7 @@ if __name__ == '__main__':
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
 
-
-    datapath = ('../data/SA/SA主力连续.csv')
+    datapath = ('../../data/SA/SA主力连续.csv')
 
     # Simulate the header row isn't there if noheaders requested
 
@@ -45,11 +45,10 @@ if __name__ == '__main__':
     dataframe.index.name = "Date"
 
     dataframe.rename(
-        columns={"开": "Open", "高": "High", "低": "Low","收":"Close","成交量":"Volume","持仓量":"Open Interest"},
+        columns={"开": "Open", "高": "High", "低": "Low", "收": "Close", "成交量": "Volume", "持仓量": "Open Interest"},
         inplace=True,
     )
     print(dataframe)
-
 
     # Pass it to the backtrader datafeed and add it to the cerebro
     data = bt.feeds.PandasData(dataname=dataframe)

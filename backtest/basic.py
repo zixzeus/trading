@@ -55,7 +55,7 @@ def show_pattern(dfday,pattern,pattern_name,save=False):
     def format_date(x, pos=None):
         if x < 0 or x > len(dfday['date']) - 1:
             return ''
-        return dfday['date'][int(x)]
+        return dfday['date'].iloc[int(x)]
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
     plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
@@ -63,6 +63,24 @@ def show_pattern(dfday,pattern,pattern_name,save=False):
         plt.savefig(f"{pattern_name}.png", dpi=600)
     plt.show()
 
+def show_macd(data):
+    fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(14, 10))
+    mpf.plot(data, type='candle', ax=ax1, volume=False)
+
+    # Calculate MACD
+    exp12 = data['Close'].ewm(span=12, adjust=False).mean()
+    exp26 = data['Close'].ewm(span=26, adjust=False).mean()
+    macd = exp12 - exp26
+    signal = macd.ewm(span=9, adjust=False).mean()
+    histogram = macd - signal
+
+    # Plot MACD
+    ax2.plot(data.index, macd, label='MACD', color='b')
+    ax2.plot(data.index, signal, label='Signal', color='r')
+    ax2.bar(data.index, histogram, label='Histogram', color='g')
+    ax2.legend(loc='upper left')
+
+    plt.show()
 
 def transfer_period(df_1min,period):
     if period in ["D","W","M"]:
@@ -74,7 +92,7 @@ def transfer_period(df_1min,period):
             "Volume":"sum",
             "OpenInterest":"last"
         }).dropna()
-    elif period in ["H","30min"]:
+    elif period in ["H","30min","15min"]:
         dfnew = df_1min.resample(period,closed='right', label='right').agg({
             "Open":"first",
             "High":"max",
@@ -90,7 +108,7 @@ def transfer_period(df_1min,period):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     data=read_data('../data/SA/SA主力连续.csv')
-    dfday = transfer_period(data,"D")
+    dfday = transfer_period(data,"15min")
     dfday['date'] = pd.to_datetime(dfday.index)
     dfday['date'] = dfday['date'].apply(lambda x: x.strftime('%Y-%m-%d'))
 
@@ -98,7 +116,7 @@ if __name__ == '__main__':
     pattern = detect_pattern(talib.CDLHANGINGMAN,pattern_name,dfday)
     print(pattern)
 
-    show_pattern(dfday,pattern,pattern_name,True)
+    # show_pattern(dfday,pattern,pattern_name,True)
 
-
+    show_macd(dfday[0:1000])
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
