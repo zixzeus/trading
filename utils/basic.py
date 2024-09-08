@@ -55,12 +55,12 @@ def show_pattern(dfday,pattern,pattern_name,save=False):
     def format_date(x, pos=None):
         if x < 0 or x > len(dfday['date']) - 1:
             return ''
-        return dfday['date'][int(x)]
+        return dfday['date'].iloc[int(x)]
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_date))
     plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
     if save == True and not os.path.exists(f"{pattern_name}.png"):
-        plt.savefig(f"../trading/pictures/{pattern_name}.png", dpi=600)
+        plt.savefig(f"../pictures/{pattern_name}.png", dpi=600)
     plt.show()
 
 

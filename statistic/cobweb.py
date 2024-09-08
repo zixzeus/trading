@@ -94,7 +94,7 @@ class Cobweb:
         # 添加序号标签
 
         for i, txt in enumerate(range(1, len(self.data) + 1)):
-            ax.text(inventories[i], prices[i], dates[i].strftime("%Y-%m"), fontsize=8, ha='left', va='bottom')
+            ax.text(inventories.iloc[i], prices.iloc[i], dates.iloc[i].strftime("%Y-%m"), fontsize=8, ha='left', va='bottom')
 
         plt.plot(inventories, prices)
         plt.title(f'{self.name} cobweb graph')
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     filepath = "../data/ni.csv"
     silverweb = Cobweb(filepath)
     silverweb.name = "ni"
-    silverweb.period = "M"
+    silverweb.period = "ME"
     silverweb.dpi = 300
     silverweb.figsize = (32,32)
     silverweb.marker = "x"

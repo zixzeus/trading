@@ -11,7 +11,8 @@ print(ql.Settings.instance().evaluationDate);
 
 # or you can do
 today = ql.Date(15,12,2021);
-ql.Settings.instance().setEvaluationDate(today)
+# ql.Settings.instance().setEvaluationDate(today)
+ql.Settings.instance().evaluationDate=today
 print(ql.Settings.instance().evaluationDate)
 
 # prints..December 15th, 2021

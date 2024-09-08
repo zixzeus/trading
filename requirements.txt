@@ -1,0 +1,12 @@
+backtrader==1.9.78.123
+ctpbee==1.6.5
+ctpbee_kline==0.1
+matplotlib==3.8.4
+mplfinance==0.12.10b0
+numpy==2.1.1
+pandas==2.2.2
+py_ctp==6.7.2.20240315
+pytz==2024.1
+QuantLib==1.35
+scipy==1.14.1
+TA_Lib==0.4.32
