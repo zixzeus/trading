@@ -8,7 +8,7 @@ import sys  # To find out the script name (in argv[0])
 
 # Import the backtrader platform
 import backtrader as bt
-from basic import read_data,transfer_period
+from utils.basic import read_data,transfer_period
 import pandas as pd
 
 # Create a Stratey

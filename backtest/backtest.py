@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
 
-    datapath = ('../../data/SA/SA主力连续.csv')
+    datapath = ('../data/SA/SA主力连续.csv')
 
     # Simulate the header row isn't there if noheaders requested
 

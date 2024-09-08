@@ -1,7 +1,12 @@
 from datetime import datetime
 import backtrader as bt
-from basic import read_data,transfer_period
+from utils.basic import read_data,transfer_period
 import pandas as pd
+import os
+import sys
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
 # Create a subclass of Strategy to define the indicators and logic
 
 class MyStrategy(bt.Strategy):
@@ -52,9 +57,9 @@ cerebro.broker.setcash(100000.0)
 cerebro.broker.setcommission(commission=0.00025,leverage=5,mult=20)
 # cerebro.addsizer(bt.sizers.PercentSizerInt, percents=60)
 # Add a FixedSize sizer according to the stake
-cerebro.addsizer(bt.sizers.FixedSize, stake=1)
+# cerebro.addsizer(bt.sizers.FixedSize, stake=1)
 
-
+cerebro.addsizer(bt.sizers.PercentSizerInt,percents=60)
 # Set the commission
 
 
