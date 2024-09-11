@@ -76,6 +76,7 @@ class DoubleMa(CtpbeeApi):
 
 if __name__ == '__main__':
     kline = Kline()
+    code = "SA501.CZCE"
     app = CtpBee('ctp', __name__).with_tools(kline)
     info = {
         "CONNECT_INFO": {
@@ -92,6 +93,6 @@ if __name__ == '__main__':
         "TD_FUNC": True,  # Open trading feature
     }
     app.config.from_mapping(info)  # loading config from dict object
-    cta = DoubleMa("double_ma")
+    cta = DoubleMa("double_ma",code)
     app.add_extension(cta)
     app.start(log_output=True)

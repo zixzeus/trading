@@ -1,12 +1,12 @@
 import QuantLib as ql
 
 # 假设的市场数据
-underlying_price = 67360  # 标的资产价格
-strike_price = 60000 # 执行价格
-volatility = 0.1165 # 波动率
+underlying_price = 3040  # 标的资产价格
+strike_price = 3800 # 执行价格
+volatility = 0.2564 # 波动率
 risk_free_rate = 0.015  # 无风险利率
-maturity_date = ql.Date(24, 11, 2023)  # 到期时间
-calculation_date = ql.Date(4, 11, 2023)  # 计算日期
+maturity_date = ql.Date(17, 12, 2024)  # 到期时间
+calculation_date = ql.Date(10, 9, 2024)  # 计算日期
 
 # 构建日期计算和日历
 calendar = ql.China()
