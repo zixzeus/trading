@@ -63,8 +63,6 @@ class OptionData:
                 pl_ratio = 0
             con_df.loc[index, "pl_ratio"] = pl_ratio
             con_df.loc[index, "expected_return"] = row["Delta"] * pl_ratio
-            # if con_df.loc[index, "expected_return"] > 1:
-            #     print("total",con_df.loc[index,"合约名称"])
 
         put_df = self.select_option(con_df, option_type=ql.Option.Put)
         put_at_the_money = self.select_at_the_money(put_df, ql.Option.Put)
@@ -81,14 +79,18 @@ class OptionData:
                 pl_ratio = 0
             con_df.loc[index, "pl_ratio"] = pl_ratio
             con_df.loc[index, "expected_return"] = row["Delta"] * pl_ratio
-            # if con_df.loc[index, "expected_return"] < -1:
-            #     print("total",con_df.loc[index,"合约名称"])
 
         return con_df
 
     @staticmethod
-    def select_option(con_df, option_type):
-        pass
+    def select_option(df, option_type):
+        if option_type == ql.Option.Call:
+            sub_df = df[df["Delta"] > 0]
+            return sub_df
+
+        elif option_type == ql.Option.Put:
+            sub_df = df[df["Delta"] < 0]
+            return sub_df
 
     @classmethod
     def traversal(cls, trade_date):
@@ -99,8 +101,7 @@ class OptionData:
                 data.set_contract(option_name)
                 con_df = data.add_pl_ratio()
                 if con_df is not None:
-                    con_df.to_excel(f"{option_name}-{trade_date}.xlsx", index=False)
-
+                    # con_df.to_excel(f"{option_name}-{trade_date}.xlsx", index=False)
                     selected_df = con_df[(con_df["expected_return"] < -1) | (con_df["expected_return"] > 1)]
                     cls.target = pd.concat([cls.target, selected_df], ignore_index=True)
 
@@ -112,16 +113,6 @@ class DCEOptionData(OptionData):
 
     def get_data(self):
         return ak.option_dce_daily(self.symbol, self.trade_date)
-
-    @staticmethod
-    def select_option(df, option_type):
-        if option_type == ql.Option.Call:
-            sub_df = df[df["合约名称"].str.contains("-C-")]
-            return sub_df
-
-        elif option_type == ql.Option.Put:
-            sub_df = df[df["合约名称"].str.contains("-P-")]
-            return sub_df
 
 
 class SHFEOptionData(OptionData):
@@ -136,20 +127,10 @@ class SHFEOptionData(OptionData):
         self.part_2 = self.part_2.drop(self.part_2.index[-1])
         return self.part_1, self.part_2
 
-    @staticmethod
-    def select_option(df, option_type):
-        if option_type == ql.Option.Call:
-            sub_df = df[df["合约名称"].str.contains("C")]
-            return sub_df
-
-        elif option_type == ql.Option.Put:
-            sub_df = df[df["合约名称"].str.contains("P")]
-            return sub_df
-
 
 class CZCEOptionData(OptionData):
     market_list = ["白糖期权", "棉花期权", "甲醇期权", "PTA期权", "菜籽粕期权", "动力煤期权", "短纤期权",
-                   "菜籽油期权", "花生期权", "棉花期权", "短纤期权", "纯碱期权", "锰硅期权", "硅铁期权", "尿素期权",
+                   "菜籽油期权", "花生期权", "短纤期权", "纯碱期权", "锰硅期权", "硅铁期权", "尿素期权",
                    "对二甲苯期权",
                    "烧碱期权", "玻璃期权"]
     target = None
@@ -164,24 +145,18 @@ class CZCEOptionData(OptionData):
             drop=True)
         return self.part_1, self.part_2
 
-    @staticmethod
-    def select_option(df, option_type):
-        if option_type == ql.Option.Call:
-            sub_df = df[df["合约名称"].str.contains("C")]
-            return sub_df
 
-        elif option_type == ql.Option.Put:
-            sub_df = df[df["合约名称"].str.contains("P")]
-            return sub_df
+# SHFEOptionData.traversal(trade_date="20240910")
+# print(SHFEOptionData.target)
+# SHFEOptionData.target.to_excel("SHFE_Shit_target.xlsx", index=False)
 
+# CZCEOptionData.traversal(trade_date="20240910")
+# print(CZCEOptionData.target)
+# CZCEOptionData.target.to_excel("CZCE_target.xlsx", index=False)
 
-SHFEOptionData.traversal(trade_date="20240910")
-print(SHFEOptionData.target)
-SHFEOptionData.target.to_excel("SHFE_Shit_target.xlsx", index=False)
-
-
-
-
+DCEOptionData.traversal(trade_date="20240910")
+print(DCEOptionData.target)
+DCEOptionData.target.to_excel("DCE_target1.xlsx", index=False)
 
 # option_commodity_contract_table_sina_df = ak.option_commodity_contract_table_sina(symbol="豆粕期权", contract="m2501")
 # print(option_commodity_contract_table_sina_df)
@@ -189,21 +164,7 @@ SHFEOptionData.target.to_excel("SHFE_Shit_target.xlsx", index=False)
 
 # print("看涨合约买量求和")
 # print(option_commodity_contract_table_sina_df["看涨合约-买量"].sum())
-#
-# print("看涨合约卖量求和")
-# print(option_commodity_contract_table_sina_df["看涨合约-卖量"].sum())
-#
-# print("看涨合约持仓量量求和")
-# print(option_commodity_contract_table_sina_df["看涨合约-持仓量"].sum())
-#
-# print("看跌合约买量求和")
-# print(option_commodity_contract_table_sina_df["看跌合约-买量"].sum())
-#
-# print("看跌合约卖量求和")
-# print(option_commodity_contract_table_sina_df["看跌合约-卖量"].sum())
-#
-# print("看跌合约持仓量量求和")
-# print(option_commodity_contract_table_sina_df["看跌合约-持仓量"].sum())
+
 
 
 # option_commodity_hist_sina_df = ak.option_commodity_hist_sina(symbol="m2411C3350")
