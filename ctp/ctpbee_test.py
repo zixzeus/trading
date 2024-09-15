@@ -49,13 +49,13 @@ class DoubleMa(CtpbeeApi):
             self.action.sell_open(bar.close_price, 1, bar)
 
     def on_tick(self, tick: TickData) -> None:
-        pass
+        # pass
         # print(tick.datetime, tick.last_price)  # 打印tick时间戳以及最新价格
         #
         # # 买开
-        # self.action.buy_open(tick.last_price, 1, tick)
+        self.action.buy_open(tick.last_price, 1, tick)
         # # 买平
-        # self.action.buy_close(tick.last_price, 1, tick)
+        self.action.buy_close(tick.last_price, 1, tick)
         # # 卖开
         # self.action.sell_open(tick.last_price, 1, tick)
         # # 卖平
@@ -76,18 +76,32 @@ class DoubleMa(CtpbeeApi):
 
 if __name__ == '__main__':
     kline = Kline()
-    code = "SA501.CZCE"
+    code = "zn2410C24000.SHFEx"
     app = CtpBee('ctp', __name__).with_tools(kline)
     info = {
         "CONNECT_INFO": {
-            "userid": "181290",
-            "password": "!1995127Zx",
-            "brokerid": "9999",
-            "md_address": "tcp://180.168.146.187:10131",
-            "td_address": "tcp://180.168.146.187:10130",
-            "appid": "simnow_client_test",
-            "auth_code": "0000000000000000",
-            "product_info": "test"
+            # "userid": "181290",
+            # "password": "!1995127Zx",
+            # "brokerid": "9999",
+            # "md_address": "tcp://180.168.146.187:10131",
+            # "td_address": "tcp://180.168.146.187:10130",
+
+            # "md_address": "tcp://180.168.146.187:10211",
+            # "td_address": "tcp://180.168.146.187:10201",
+
+
+            # "appid": "simnow_client_test",
+            # "auth_code": "0000000000000000",
+            # "product_info": "test",
+
+            "userid": "10651",
+            "password": "123456",
+            "brokerid": "",
+            "md_address":"tcp://121.37.80.177:20004",
+            "td_address":"tcp://121.37.80.177:20002",
+            "appid": "",
+            "auth_code": "",
+            "product_info": "",
         },
         "INTERFACE": "ctp",
         "TD_FUNC": True,  # Open trading feature
@@ -95,4 +109,4 @@ if __name__ == '__main__':
     app.config.from_mapping(info)  # loading config from dict object
     cta = DoubleMa("double_ma",code)
     app.add_extension(cta)
-    app.start(log_output=True)
+    app.start()

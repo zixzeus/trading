@@ -24,7 +24,7 @@ class TestTrade(object):
         self.t.OnErrRtnQuoteInsert = lambda obj, o: None
         self.t.OnOrder = lambda obj, o: None
         self.t.OnErrOrder = lambda obj, f, info: None
-        self.t.OnTrade = lambda obj, o: None
+        self.t.OnTrade = lambda obj, o: print(f'OnTrade: {obj}:{o}')
         self.t.OnInstrumentStatus = lambda obj, inst, stat: None
 
     def on_connect(self, obj):
@@ -88,10 +88,10 @@ if __name__ == "__main__":
     qq = TestQuote(front_quote, broker, investor, pwd)
     qq.run()
 
-    time.sleep(6)
-    for inst in tt.t.instruments.values():
-        print(inst)
-    tt.t.ReqOrderInsert('SA501', DirectType.Buy, OffsetType.Open,"CZCE", 1450, 3)
+    # time.sleep(6)
+    # for inst in tt.t.instruments.values():
+    #     print(inst)
+    tt.t.ReqOrderInsert('TA411C5600', DirectType.Buy, OffsetType.Open,"CZCE", 1450, 3)
     input()
     tt.release()
     qq.release()
