@@ -80,28 +80,20 @@ if __name__ == '__main__':
     app = CtpBee('ctp', __name__).with_tools(kline)
     info = {
         "CONNECT_INFO": {
-            # "userid": "181290",
-            # "password": "!1995127Zx",
-            # "brokerid": "9999",
-            # "md_address": "tcp://180.168.146.187:10131",
-            # "td_address": "tcp://180.168.146.187:10130",
+            "userid": "181290",
+            "password": "!1995127Zx",
+            "brokerid": "9999",
+            "md_address": "tcp://180.168.146.187:10131",
+            "td_address": "tcp://180.168.146.187:10130",
 
             # "md_address": "tcp://180.168.146.187:10211",
             # "td_address": "tcp://180.168.146.187:10201",
 
 
-            # "appid": "simnow_client_test",
-            # "auth_code": "0000000000000000",
-            # "product_info": "test",
+            "appid": "simnow_client_test",
+            "auth_code": "0000000000000000",
+            "product_info": "test",
 
-            "userid": "10651",
-            "password": "123456",
-            "brokerid": "",
-            "md_address":"tcp://121.37.80.177:20004",
-            "td_address":"tcp://121.37.80.177:20002",
-            "appid": "",
-            "auth_code": "",
-            "product_info": "",
         },
         "INTERFACE": "ctp",
         "TD_FUNC": True,  # Open trading feature

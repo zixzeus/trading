@@ -1,5 +1,5 @@
 import akshare as ak
-from calculator import ImpliedVolatility, Calculator
+from calculator import VolCalculator,ImVolCalculator
 import QuantLib as ql
 import pandas as pd
 import concurrent.futures
@@ -11,16 +11,38 @@ class OptionData:
     exchange_name = None
 
     def __init__(self, symbol, trade_date):
-        self.symbol = symbol
-        self.trade_date = trade_date
-        self.part_1, self.part_2 = self.get_data()
-        self.contract_code = None
+        self._symbol = symbol
+        self._trade_date = trade_date
+        self._part_1, self._part_2 = self.get_data()
+        self._contract_code = None
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, symbol):
+        self._symbol = symbol
+
+    @property
+    def trade_date(self):
+        return self._trade_date
+
+    @trade_date.setter
+    def trade_date(self, trade_date):
+        self._trade_date = trade_date
+
+    @property
+    def contract_code(self):
+        return self._contract_code
+
+    @contract_code.setter
+    def contract_code(self, contract_code):
+        self._contract_code = contract_code
+
 
     def get_data(self):
         pass
-
-    def set_contract(self, code):
-        self.contract_code = code
 
     def select_contract(self, contract_name):
         self.contract_code = contract_name
@@ -102,7 +124,7 @@ class OptionData:
             data = cls(symbol=option, trade_date=trade_date)
             for index, row in data.part_2.iterrows():
                 option_name = row["合约系列"]
-                data.set_contract(option_name)
+                data.contract_code = option_name
                 con_df = data.add_pl_ratio()
                 if con_df is not None:
                     # con_df.to_excel(f"{option_name}-{trade_date}.xlsx", index=False)
@@ -180,7 +202,7 @@ def fetch_data_from_exchange(exchange,trade_date):
 # 获取三个交易所的数据
 def fetch_all_data():
     exchanges = [SHFEOptionData, CZCEOptionData, DCEOptionData, GFEXOptionData]
-    trade_dates = ["20240913","20240913","20240913","20240913"]
+    trade_dates = ["20240920","20240920","20240920","20240920"]
     # 使用 ThreadPoolExecutor 进行多线程
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # 提交所有的任务并获取结果
@@ -193,9 +215,10 @@ def fetch_all_data():
 
 if __name__ == "__main__":
     fetch_all_data()
-    # CZCEOptionData.traversal(trade_date="20240910")
+    trade_date = "20240915"
+    # CZCEOptionData.traversal(trade_date=trade_date)
     # print(CZCEOptionData.target)
-    # CZCEOptionData.target.to_excel("../data/CZCE_target.xlsx", index=False)
+    # CZCEOptionData.target.to_excel(f"../data/CZCE_{trade_date}.xlsx", index=False)
 
     # SHFEOptionData.traversal(trade_date="20240910")
     # print(SHFEOptionData.target)

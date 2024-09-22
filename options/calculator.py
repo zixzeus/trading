@@ -70,6 +70,8 @@ class ImVolCalculator:
         self._expiration_date = None
         self._evaluation_date = None
         self._option_type = None
+        self.random_process = None
+        self.option_engine = None
         self.implied_volatility = 0
         self.greek = {}
 
@@ -127,35 +129,42 @@ class ImVolCalculator:
         self._option_type = params
 
     def load_bs_model(self):
+
+        # 设置 QuantLib 的日期结构
         calendar = ql.China()
         day_count = ql.Actual365Fixed()
 
         today = self.evaluation_date
         ql.Settings.instance().evaluationDate = today
-
+        # 创建期权标的物
         payoff = ql.PlainVanillaPayoff(self.option_type, self.strike_price)
-
+        # 设置市场数据
         spot_handle = ql.QuoteHandle(ql.SimpleQuote(self.current_price))
         rate_handle = ql.YieldTermStructureHandle(ql.FlatForward(today, self.risk_free_rate, day_count))
         dividend_handle = ql.YieldTermStructureHandle(ql.FlatForward(today, self.dividend_rate, day_count))
-
-        exercise = ql.EuropeanExercise(self.expiration_date)
-        europe_option = ql.VanillaOption(payoff, exercise)
-
+        # 初始波动率猜测
         initial_volatility = 0.2
         volatility_handle = ql.BlackVolTermStructureHandle(
             ql.BlackConstantVol(today, calendar, initial_volatility, day_count))
 
         # 使用 Black-Scholes-Merton 模型进行期权定价
-        bsm_process = ql.BlackScholesMertonProcess(spot_handle, dividend_handle, rate_handle, volatility_handle)
+        self.random_process = ql.BlackScholesMertonProcess(spot_handle, dividend_handle, rate_handle, volatility_handle)
+
+        exercise = ql.EuropeanExercise(self.expiration_date)
+        self.option_engine = ql.VanillaOption(payoff, exercise)
 
         # 设置定价引擎
-        europe_option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
+        self.option_engine.setPricingEngine(ql.AnalyticEuropeanEngine(self.random_process))
         # 计算隐含波动率
-        self.implied_volatility = europe_option.impliedVolatility(self.option_price, bsm_process)
-        self.greek["Delta"] = europe_option.delta()
-        self.greek["Gamma"] = europe_option.gamma()
-        self.greek["Theta"] = europe_option.thetaPerDay()
+        # self.implied_volatility = europe_option.impliedVolatility(self.option_price, bsm_process)
+
+    def get_implied_volatility(self):
+        self.implied_volatility = self.option_engine.impliedVolatility(self.option_price, self.random_process)
+
+    def get_greek(self):
+        self.greek["Delta"] = self.option_engine.delta()
+        self.greek["Gamma"] = self.option_engine.gamma()
+        self.greek["Theta"] = self.option_engine.thetaPerDay()
 
 
 class VolCalculator:
@@ -209,11 +218,11 @@ class VolCalculator:
 
 
 if __name__ == '__main__':
-    option_price = 192
-    current_price = 23830
-    strike_price = 24000
-    expiration_date = ql.Date(24, 9, 2024)
-    evaluate_date = ql.Date(15, 9, 2024)
+    option_price = 100
+    current_price = 6036
+    strike_price = 5000
+    expiration_date = ql.Date(25, 1, 2024)
+    evaluate_date = ql.Date(2, 1, 2024)
     left_time = 9
     volatility = 0.5
     option_type = ql.Option.Call
@@ -234,15 +243,16 @@ if __name__ == '__main__':
         Iv.current_price = current_price
         Iv.evaluation_date = evaluate_date
         Iv.option_type = option_type
+
+
+        # for option in range(190, 200):
+        #     for strike in range(24000, 25000):
+        #         Iv.option_price = option
+        #         Iv.strike_price = strike
+        Iv.load_bs_model()
         Iv.check_initialized()
-
-        for option in range(190, 200):
-            for strike in range(24000, 25000):
-                Iv.option_price = option
-                Iv.strike_price = strike
-                Iv.load_bs_model()
-                # print(Iv.implied_volatility, Iv.greek)
-
+        Iv.get_greek()
+        print(Iv.greek)
 
 
     # print(Iv.implied_volatility)
