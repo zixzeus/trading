@@ -16,7 +16,11 @@ import matplotlib.ticker as ticker
 import talib
 import os
 from mplfinance.original_flavor import candlestick2_ochl
+import os,sys
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+folder_path = "./data/"
 
 def read_data(file_name):
     data=pd.read_csv(file_name, index_col=2,encoding = 'gb2312',parse_dates=True)
@@ -27,6 +31,21 @@ def read_data(file_name):
         inplace=True,
     )
     return data
+
+
+def read_shfe_data(folder_path):
+    files_list = os.listdir(folder_path)
+    df_list = []
+    for file in files_list:
+        if file.startswith("所内") and file.endswith('.xls'):
+            monthly_data = pd.read_excel(f"{folder_path}/{file}",skiprows=3, skipfooter=5)
+            monthly_data.drop(monthly_data.columns[-1], axis=1, inplace=True)
+            monthly_data['Contract'] = monthly_data['Contract'].ffill()
+            df_list.append(monthly_data)
+
+    merged_df = pd.concat(df_list, ignore_index=True)
+    return merged_df
+
 
 def detect_pattern(pattern,pattern_name,df):
     df[pattern_name] = pattern(df["Open"].values, df["High"].values, df["Low"].values,
@@ -99,6 +118,12 @@ if __name__ == '__main__':
     print(pattern)
 
     show_pattern(dfday,pattern,pattern_name,True)
-
+    import time
+    start_time1 = time.time()
+    big_df = read_shfe_data('../data/MarketData_Year_2024')
+    # print(big_df)
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    print(f"Execution time: {execution_time1} seconds")
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -9,9 +9,9 @@ class DoubleMa(CtpbeeApi):
     fast_period = 2
     slow_period = 10
 
-    def __init__(self, name,code):
+    def __init__(self, name, code):
         super().__init__(name)
-        self.instrument_set = {code}
+        self.instrument_set = code
         self.close = []
         self.pos = 0
         self.length = self.slow_period
@@ -49,13 +49,13 @@ class DoubleMa(CtpbeeApi):
             self.action.sell_open(bar.close_price, 1, bar)
 
     def on_tick(self, tick: TickData) -> None:
-        # pass
+        pass
         # print(tick.datetime, tick.last_price)  # 打印tick时间戳以及最新价格
         #
         # # 买开
-        self.action.buy_open(tick.last_price, 1, tick)
+        # self.action.buy_open(tick.last_price, 1, tick)
         # # 买平
-        self.action.buy_close(tick.last_price, 1, tick)
+        # self.action.buy_close(tick.last_price, 1, tick)
         # # 卖开
         # self.action.sell_open(tick.last_price, 1, tick)
         # # 卖平
@@ -70,35 +70,39 @@ class DoubleMa(CtpbeeApi):
             self.action.subscribe(contract.local_symbol)  # 订阅行情
             print("合约乘数: ", contract.size)
 
+    def on_trade(self, trade: TradeData) -> None:
+        print(trade)
+
     def on_order(self, order: OrderData) -> None:
-        print(order)
+        pass
 
 
 if __name__ == '__main__':
     kline = Kline()
-    code = "zn2410C24000.SHFEx"
+    code = {"zn2410C24000.SHFE", "zn2410.SHFE"}
     app = CtpBee('ctp', __name__).with_tools(kline)
     info = {
         "CONNECT_INFO": {
             "userid": "181290",
             "password": "!1995127Zx",
             "brokerid": "9999",
-            "md_address": "tcp://180.168.146.187:10131",
-            "td_address": "tcp://180.168.146.187:10130",
+            # "md_address": "tcp://180.168.146.187:10131",
+            # "td_address": "tcp://180.168.146.187:10130",
 
-            # "md_address": "tcp://180.168.146.187:10211",
-            # "td_address": "tcp://180.168.146.187:10201",
-
+            "md_address": "tcp://180.168.146.187:10211",
+            "td_address": "tcp://180.168.146.187:10201",
 
             "appid": "simnow_client_test",
             "auth_code": "0000000000000000",
             "product_info": "test",
 
         },
+        "XMIN": [5],
+        "INSTRUMENT_INDEPEND": True,
         "INTERFACE": "ctp",
         "TD_FUNC": True,  # Open trading feature
     }
     app.config.from_mapping(info)  # loading config from dict object
-    cta = DoubleMa("double_ma",code)
+    cta = DoubleMa("double_ma", code)
     app.add_extension(cta)
     app.start()

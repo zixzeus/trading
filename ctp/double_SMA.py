@@ -4,6 +4,7 @@ from ctpbee import Action
 from ctpbee.indicator.indicator import ma
 from ctpbee_kline import Kline
 
+
 class ActionMe(Action):
     def __init__(self, app):
         # 请记住要对父类进行实例化
@@ -14,11 +15,11 @@ class ActionMe(Action):
 
 class DoubleMA(CtpbeeApi):
     fast_period = 2
-    slow_period = 10
+    slow_period = 5
 
-    def __init__(self, name):
+    def __init__(self, name, code):
         super().__init__(name)
-        self.instrument_set = ['SA501.CZCE']
+        self.instrument_set = {code}
         self.length = self.slow_period
         self.close = []
         self.pos = 0
@@ -42,8 +43,11 @@ class DoubleMA(CtpbeeApi):
         close_array = self.close[-self.length * 2:]
         fast_ma = ma(close_array, self.fast_period)
         slow_ma = ma(close_array, self.slow_period)
-        buy = fast_ma[-1] > slow_ma[-1] and fast_ma[-2] < slow_ma[-2]
-        sell = fast_ma[-1] < slow_ma[-1] and fast_ma[-2] > slow_ma[-2]
+        # buy = fast_ma[-1] > slow_ma[-1] and fast_ma[-2] < slow_ma[-2]
+        # sell = fast_ma[-1] < slow_ma[-1] and fast_ma[-2] > slow_ma[-2]
+
+        buy = fast_ma[-1] > slow_ma[-1]
+        sell = fast_ma[-1] < slow_ma[-1]
         if self.pos == 1 and sell:
             self.action.buy_close(bar.close_price, 1, bar)
             self.pos = 0
@@ -56,6 +60,9 @@ class DoubleMA(CtpbeeApi):
         elif sell and self.pos == 0:
             self.pos = -1
             self.action.sell_open(bar.close_price, 1, bar)
+
+    def on_trade(self, trade: TradeData) -> None:
+        print(trade)
 
 
 def create_app():
