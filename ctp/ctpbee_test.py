@@ -86,11 +86,11 @@ if __name__ == '__main__':
             "userid": "181290",
             "password": "!1995127Zx",
             "brokerid": "9999",
-            # "md_address": "tcp://180.168.146.187:10131",
-            # "td_address": "tcp://180.168.146.187:10130",
+            "md_address": "tcp://180.168.146.187:10131",
+            "td_address": "tcp://180.168.146.187:10130",
 
-            "md_address": "tcp://180.168.146.187:10211",
-            "td_address": "tcp://180.168.146.187:10201",
+            # "md_address": "tcp://180.168.146.187:10211",
+            # "td_address": "tcp://180.168.146.187:10201",
 
             "appid": "simnow_client_test",
             "auth_code": "0000000000000000",

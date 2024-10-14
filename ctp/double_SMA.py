@@ -14,13 +14,15 @@ class ActionMe(Action):
 
 
 class DoubleMA(CtpbeeApi):
-    fast_period = 2
-    slow_period = 5
+    fast_period = 5
+    slow_period = 10
 
     def __init__(self, name, code):
         super().__init__(name)
         self.instrument_set = {code}
         self.length = self.slow_period
+        self.fast_ma =[]
+        self.slow_ma =[]
         self.close = []
         self.pos = 0
 
@@ -38,16 +40,21 @@ class DoubleMA(CtpbeeApi):
     def on_bar(self, bar: BarData):
         print(bar.close_price)
         self.close.append(bar.close_price)
-        if len(self.close) <= self.length * 2:
+        if len(self.close) < self.length :
             return
-        close_array = self.close[-self.length * 2:]
-        fast_ma = ma(close_array, self.fast_period)
-        slow_ma = ma(close_array, self.slow_period)
-        # buy = fast_ma[-1] > slow_ma[-1] and fast_ma[-2] < slow_ma[-2]
-        # sell = fast_ma[-1] < slow_ma[-1] and fast_ma[-2] > slow_ma[-2]
+        # close_array = self.close[-self.length:]
+        self.fast_ma.append(ma(self.close[-self.fast_period:], self.fast_period)[-1])
+        self.slow_ma.append(ma(self.close[-self.slow_period:], self.slow_period)[-1])
+        # slow_ma = ma(self.close[-self.slow_period:], self.slow_period)
 
-        buy = fast_ma[-1] > slow_ma[-1]
-        sell = fast_ma[-1] < slow_ma[-1]
+        if len(self.slow_ma) < 2:
+            return
+
+        buy = self.fast_ma[-1] > self.slow_ma[-1] and self.fast_ma[-2] < self.slow_ma[-2]
+        sell = self.fast_ma[-1] < self.slow_ma[-1] and self.fast_ma[-2] > self.slow_ma[-2]
+
+        # buy = fast_ma[-1] > slow_ma[-1]
+        # sell = fast_ma[-1] < slow_ma[-1]
         if self.pos == 1 and sell:
             self.action.buy_close(bar.close_price, 1, bar)
             self.pos = 0

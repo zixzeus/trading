@@ -192,12 +192,13 @@ if __name__ == "__main__":
     #     # SA.plot(ag_option_df)
     #     print(SA.data)
     #     SA.data.to_excel("../data/MarketData_Year_2024/market_date_test.3.xlsx")
-    #
-    #
+
+    option_df = pd.read_table('../data/CZCE/ALLOPTIONS2023.txt', skiprows=1, sep="|", low_memory=False)
+    print(option_df)
     # execution_time = timeit.timeit("a()", globals=locals(), number=1)
     # print("Execution Time: ", execution_time)
     # expiry_date = get_option_expiry(2024, 11)
-
+    #
     option_czce_hist_df = ak.option_czce_hist(symbol="SA", year="2023")
-    print(option_czce_hist_df)
+    # print(option_czce_hist_df)
     # print(f"2024年9月的期权到期日为: {expiry_date}")

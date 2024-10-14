@@ -1,5 +1,5 @@
 import akshare as ak
-from calculator import VolCalculator,ImVolCalculator
+from calculator import VolCalculator, ImVolCalculator
 import QuantLib as ql
 import pandas as pd
 import concurrent.futures
@@ -39,7 +39,6 @@ class OptionData:
     @contract_code.setter
     def contract_code(self, contract_code):
         self._contract_code = contract_code
-
 
     def get_data(self):
         pass
@@ -86,7 +85,7 @@ class OptionData:
             con_df.loc[index, "pl_ratio"] = pl_ratio
             con_df.loc[index, "expected_return"] = row["Delta"] * pl_ratio
             if pl_ratio == 0:
-                con_df.loc[index, "kelly"] =0
+                con_df.loc[index, "kelly"] = 0
             else:
                 con_df.loc[index, "kelly"] = row["Delta"] - (1 - row["Delta"]) / pl_ratio
 
@@ -191,22 +190,22 @@ class GFEXOptionData(OptionData):
 
 
 # 模拟从不同交易所获取期权数据的函数
-def fetch_data_from_exchange(exchange,trade_date):
+def fetch_data_from_exchange(exchange, trade_date):
     print(f"Fetching data from {exchange.exchange_name}...")
 
     exchange.traversal(trade_date=trade_date)
     # 模拟数据获取延迟
-    return exchange.target,exchange.exchange_name
+    return exchange.target, exchange.exchange_name
 
 
 # 获取三个交易所的数据
 def fetch_all_data():
     exchanges = [SHFEOptionData, CZCEOptionData, DCEOptionData, GFEXOptionData]
-    trade_dates = ["20240925","20240925","20240925","20240925"]
+    trade_dates = ["20241011" for _ in range(4)]
     # 使用 ThreadPoolExecutor 进行多线程
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # 提交所有的任务并获取结果
-        results = executor.map(fetch_data_from_exchange, exchanges,trade_dates)
+        results = executor.map(fetch_data_from_exchange, exchanges, trade_dates)
 
     for result in results:
         print(result[0])
@@ -220,18 +219,17 @@ if __name__ == "__main__":
     # print(CZCEOptionData.target)
     # CZCEOptionData.target.to_excel(f"../data/CZCE_{trade_date}.xlsx", index=False)
 
-    # SHFEOptionData.traversal(trade_date="20240910")
+    # SHFEOptionData.traversal(trade_date="20241008")
     # print(SHFEOptionData.target)
     # SHFEOptionData.target.to_excel("../data/SHFE_Shit_target.xlsx", index=False)
 
-    # DCEOptionData.traversal(trade_date="20240911")
+    # DCEOptionData.traversal(trade_date="20241008")
     # print(DCEOptionData.target)
-    # DCEOptionData.target.to_excel("../data/DCE_target1.xlsx", index=False)
+    # DCEOptionData.target.to_excel("../data/DCE_target1008.xlsx", index=False)
 
     # GFEXOptionData.traversal(trade_date="20240910")
     # print(GFEXOptionData.target)
     # GFEXOptionData.target.to_excel("../data/GFEX_target.xlsx", index=False)
-
 
 # option_commodity_contract_table_sina_df = ak.option_commodity_contract_table_sina(symbol="豆粕期权", contract="m2501")
 # print(option_commodity_contract_table_sina_df)

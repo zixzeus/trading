@@ -9,9 +9,10 @@ from ctpbee_kline import Kline
 # data = data.drop("Unnamed: 0", axis=1)
 # data = [list(reversed(data.to_dict("index").values()))]
 
-data = read_shfe_data("../data/MarketData_Year_2024")
-# data = pd.read_excel("../data/MarketData_Year_2024/market_date_test.3.xlsx")
-data = data[data["Contract"]=="ag2405"]
+# data = read_shfe_data("../data/MarketData_Year_2024")
+# # data = pd.read_excel("../data/MarketData_Year_2024/market_date_test.3.xlsx")
+# data = data[data["Contract"]=="ag2405"]
+data = pd.read_excel("../data/MarketData_Year_2024/ag2405.xlsx")
 data['Contract'] = data['Contract'].apply(lambda x: f"{x}.SHFE")
 data['Date'] = pd.to_datetime(data['Date'], format='%Y%m%d')
 data['Date'] = data['Date'].apply(lambda x: x.replace(hour=14, minute=30, second=0))
@@ -31,12 +32,12 @@ if __name__ == '__main__':
         "LOOPER": {
             "initial_capital": 10000,
             "margin_ratio": {
-                code: 0.00003,
+                code: 0.1,
             },
             "commission_ratio": {
                 code: {
-                    "close": 0.00001,
-                    "close_today": 0.00001,
+                    "close": 0.00025,
+                    "close_today": 0.00025,
                 },
             },
             "size_map": {

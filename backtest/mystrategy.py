@@ -10,7 +10,7 @@ import pandas as pd
 class MyStrategy(bt.Strategy):
     # list of parameters which are configurable for the strategy
     params = dict(
-        pfast=5,  # period for the fast moving average
+        pfast=12,  # period for the fast moving average
         pslow=21  # period for the slow moving average
     )
 
@@ -25,24 +25,16 @@ class MyStrategy(bt.Strategy):
         self.crossover = bt.ind.CrossOver(self.sma1, self.sma2)  # crossover signal
 
     def next(self):
-        if not self.position:  # not in the market
-            if self.datas[0].close[0] > self.sma2[0]:  # if fast crosses slow to the upside
-                self.order = self.buy(size=10)  # enter long
-            elif self.datas[0].close[0] < self.sma2[0]:
-                self.order = self.sell(size=10)
-        else:
-            if self.datas[0].close[0] < self.sma2[0]:  # in the market & cross to the downside
-                self.order = self.close(size=10)  # close long position
-            elif self.datas[0].close[0] > self.sma2[0]:
-                self.order = self.close(size=10)
+        if self.datas[0].close[0] > self.sma2[0] and self.crossover > 0:  # if fast crosses slow to the upside
+            self.order = self.order_target_size(target=1)  # enter long
+        elif self.datas[0].close[0] < self.sma2[0] and self.crossover < 0:
+            self.order = self.order_target_size(target=-1)
 
 
 cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 
-
-
 data = read_shfe_data("../data/MarketData_Year_2024")
-data = data[data["Contract"] == "ag2405"]
+data = data[data["Contract"] == "ag2407"]
 data['Date'] = pd.to_datetime(data['Date'], format='%Y%m%d')
 data['Open'] = data['Open'].fillna(data['Close'])
 data['High'] = data['High'].fillna(data['Close'])
@@ -53,18 +45,21 @@ data.set_index('Date', inplace=True)
 # dfday = transfer_period(dfdata, "D")
 # dfday['date'] = pd.to_datetime(dfday.index)
 
-data = bt.feeds.PandasData(dataname = data)
+data = bt.feeds.PandasData(dataname=data)
 cerebro.adddata(data)  # Add the data feed
 
 cerebro.addstrategy(MyStrategy)  # Add the trading strategy
-cerebro.broker.setcash(1000000.0)
+cerebro.broker.setcash(10000.0)
 
 # Add a FixedSize sizer according to the stake
 # cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 
 # Set the commission
-cerebro.broker.setcommission(commission=0.00025)
+# cerebro.broker.setcommission(commission=0.00025)
+cerebro.broker.setcommission(commission=0.00025,  # 保证金比例
+                             mult=10.0, leverage=10, automargin=True, commtype=bt.CommInfoBase.COMM_PERC)
+cerebro.addsizer(bt.sizers.FixedSize, stake=1)
 cerebro.run()  # run it all
 portval = cerebro.broker.getvalue()
 print(f"剩余资金：{portval}")
-cerebro.plot()  # and plot it with a single command
+cerebro.plot(style='candlestick')  # and plot it with a single command
