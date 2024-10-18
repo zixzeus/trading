@@ -5,6 +5,7 @@ from blinker import Signal
 data_signal = Signal('data_received')
 order_signal = Signal('order_executed')
 
+
 # 数据处理类
 class DataHandler:
     def __init__(self):
@@ -14,6 +15,7 @@ class DataHandler:
         # 接收新数据
         self.data = pd.concat([self.data, new_data], ignore_index=True)
         data_signal.send(self.data)  # 发送数据接收信号
+
 
 # 策略类
 class Strategy:
@@ -31,6 +33,7 @@ class Strategy:
         print("Executing order...")
         order_signal.send("Buy order executed")  # 发送下单信号
 
+
 # 执行交易类
 class TradeExecutor:
     def __init__(self):
@@ -40,6 +43,7 @@ class TradeExecutor:
     def handle_order(self, message):
         # 处理下单信号
         print(message)
+
 
 # 主程序
 if __name__ == "__main__":

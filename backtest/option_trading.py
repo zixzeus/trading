@@ -1,8 +1,15 @@
 import backtrader as bt
 import pandas as pd
 from custompandasdata import CustomPandasData
-# import quantstats
+import quantstats
 from utils.basic import read_czce_futures_txt, read_czce_options_txt
+from datetime import datetime, timedelta
+
+def calculate_profit_ratio(row, atm_call_price, atm_put_price):
+    if row['Delta'] > 0:
+        return atm_call_price / row['Close'] if atm_call_price > 0 else None
+    elif row['Delta'] < 0:
+        return atm_put_price / row['Close'] if atm_put_price > 0 else None
 
 
 class OptionFuturesStrategy(bt.Strategy):
@@ -18,9 +25,14 @@ class OptionFuturesStrategy(bt.Strategy):
     def __init__(self):
         # 使用第一个数据（期货数据）作为标的资产
 
-        self.futures_data = self.datas[1]
+        self.futures_data = self.datas[0]
         # 使用第二个数据（期权数据）作为期权
-        self.options_data = self.datas[0]
+        self.options_data = self.datas[-1]
+        self.options = {}
+        self.open_times = {}
+        contracts_code = self.options_data.p.dataname["合约代码"].drop_duplicates()
+        for contract in contracts_code:
+            self.options[contract] = self.getdatabyname(contract)
         sma1 = bt.ind.SMA(self.futures_data.close, period=self.p.pfast)  # fast moving average
         sma2 = bt.ind.SMA(self.futures_data.close, period=self.p.pslow)
         self.crossover = bt.ind.CrossOver(sma1, sma2)
@@ -34,7 +46,7 @@ class OptionFuturesStrategy(bt.Strategy):
         # 获取当前期货价格和期权价格
         buy = self.crossover[0] > 0
         sell = self.crossover[0] < 0
-        current_data = pd.Timestamp(self.options_data.datetime.date(0))
+        current_date = pd.Timestamp(self.options_data.datetime.date(0))
         futures_price = self.futures_data.close[0]
         option_price = self.options_data.close[0]
         # print(current_data)
@@ -43,60 +55,78 @@ class OptionFuturesStrategy(bt.Strategy):
         idx = self.futures_data.datetime.idx
         idx2 = self.options_data.datetime.idx
         option_code = self.options_data.p.dataname.iloc[idx2]["合约代码"]
-        options = self.options_data.p.dataname.loc[current_data, "Delta"]
-        call_atm_index = (options - 0.5).abs().argmin()
-        call_atm_price = self.options_data.p.dataname.loc[current_data, "Close"].iloc[call_atm_index]
+        options = self.options_data.p.dataname.loc[current_date].copy()
+        # options = options.loc[(options['Close'] != 0) & (options['Volume'] > 100)]
+        options = options.loc[(options['Close'] != 0)]
+        if options.empty:
+            return
+        call_atm_index = (options['Delta'] - 0.5).abs().argmin()
+        call_atm_price = options["Close"].iloc[call_atm_index]
 
-        put_atm_index = (options + 0.5).abs().argmin()
-        put_atm_price = self.options_data.p.dataname.loc[current_data, "Close"].iloc[put_atm_index]
+        put_atm_index = (options['Delta'] + 0.5).abs().argmin()
+        put_atm_price = options["Close"].iloc[put_atm_index]
 
+        options['pl_ratio'] = options.apply(calculate_profit_ratio, axis=1, args=(call_atm_price, put_atm_price))
+        # options['Kelly'] = ((options['pl_ratio'] + 1) * abs(options['Delta']) - 1) / options['pl_ratio']
+        options['Kelly'] = options.apply(
+            lambda row: ((row['pl_ratio'] + 1) * row['Delta'] - 1) / row['pl_ratio'] if row['Delta'] > 0 else
+            ((row['pl_ratio'] + 1) * row['Delta'] + 1) / row['pl_ratio'],
+            axis=1
+        )
+        call_options = options.loc[options['Delta'] > 0, 'Kelly']
+        put_options = options.loc[options['Delta'] < 0, 'Kelly']
+        top5_call = call_options.nlargest(3)
+        top5_put = put_options.nsmallest(3)
         if self.options_data.Delta[0] > 0:
             if self.options_data.close[0] == 0:
                 return
             pl_ratio = call_atm_price / self.options_data.close[0]
             win_ratio = self.options_data.Delta[0]
-            if pl_ratio * win_ratio > 1:
-                self.call = self.buy(price=self.options_data.close[0], size=1, volume=1)
-                print(f"buy Call Option {option_code} at price {option_price} (futures price: {futures_price})")
+            kelly_fraction = ((pl_ratio + 1) * win_ratio - 1) / pl_ratio
+
+            if pl_ratio * win_ratio > 1 and kelly_fraction > top5_call.iloc[-1]:
+                cash = self.broker.getcash()
+                position_size = cash * kelly_fraction * 0.1
+                self.call = self.buy(data=self.options[option_code], price=self.options_data.close[0],
+                                     size=position_size / self.options_data.close[0])
+                self.open_times[option_code] = self.options[option_code].datetime.datetime(0)
+                print(
+                    f"{current_date}buy Call Option {option_code} at price {option_price} (futures price: {futures_price})")
 
         elif self.options_data.Delta[0] < 0:
             if self.options_data.close[0] == 0:
                 return
             pl_ratio = put_atm_price / self.options_data.close[0]
             win_ratio = self.options_data.Delta[0]
-            if pl_ratio * win_ratio < -1:
-                self.put = self.buy(price=self.options_data.close[0], size=1, volume=1)
-                print(f"buy put Option {option_code} at price {option_price} (futures price: {futures_price})")
+            kelly_fraction = ((pl_ratio + 1) * win_ratio + 1) / pl_ratio
+            if pl_ratio * win_ratio < -1 and kelly_fraction < top5_put.iloc[-1]:
+                cash = self.broker.getcash()
+                position_size = cash * abs(kelly_fraction) * 0.1
+                self.put = self.buy(data=self.options[option_code], price=self.options_data.close[0],
+                                    size=position_size / self.options_data.close[0])
+                self.open_times[option_code] = self.options[option_code].datetime.datetime(0)
+                print(
+                    f"{current_date} buy put Option {option_code} at price {option_price} (futures price: {futures_price})")
 
-        # print(call_atm_price)
-        # print(options)
-        # print(self.options_data.p.dataname.iloc[idx2]["Close"])
-        # option_price = self.options_data.close[0]
-        #
-        # print(option_price)
-        #
-        # print("futures")
-        # print(self.futures_data.p.dataname.iloc[idx]["Close"])
-        # future_price = self.futures_data.close[0]
-        # print(future_price)
-        # print(idx)
-        # print(idx2)
-        # print(self.data.p.dataname["合约代码"].iloc[idx])
-        # print(self.options_data.p.dataname.iloc[idx2]["合约代码"])
-        # print(self.futures_data.p.dataname.loc[current_data, "合约代码"])
-        # print(self.options_data.p.dataname.loc[current_data, "合约代码"])
-
-        # print("future price is:", futures_price)
-        # print("option price is:", option_price)
-
-        # 基于期货价格做决策
-        if buy and self.position:
-            print(f"Close Call Option {option_code} at price {option_price} (futures price: {futures_price})") # 使用期权数据买入看涨期权
-            self.close(self.options_data)
-
-        if sell and self.position:
-            print(f"Close Call Option {option_code} at price {option_price} (futures price: {futures_price})")# 使用期权数据卖出看涨期权
-            self.close(self.options_data)
+        for contract, data in self.options.items():
+            # 获取期权的持仓
+            position = self.getposition(data)
+            # print(position)
+            # 基于期货价格做决策
+            # positions = self.getposition(self.options)
+            if position:
+                time_diff = data.datetime.date() - self.open_times[contract].date()
+                hold_enough_time = time_diff >= timedelta(days=1)
+                if hold_enough_time and (((options.loc[options['合约代码'] == contract, 'Kelly'] < 0) & (options.loc[options['合约代码'] == contract, 'Delta'] > 0)).all() and buy):
+                    print(
+                        f"{current_date} Close Put Option {contract} at price {data.close[0]} (futures price: {futures_price})")  # 使用期权数据买入看涨期权
+                    self.close(data)
+                    del self.open_times[contract]
+                elif hold_enough_time and (((options.loc[options['合约代码'] == contract, 'Kelly'] > 0) & (options.loc[options['合约代码'] == contract, 'Delta'] < 0)).all() and sell):
+                    print(
+                        f"{current_date} Close Call Option {contract} at price {data.close[0]} (futures price: {futures_price})")  # 使用期权数据卖出看涨期权
+                    self.close(data)
+                    del self.open_times[contract]
 
         # 在期权到期日清仓
         # if self.p.expiry_date and self.futures_data.datetime.date(0) >= self.p.expiry_date:
@@ -134,7 +164,7 @@ if __name__ == "__main__":
     cerebro = bt.Cerebro()
 
     # 加载期货数据
-    contract_name = "SA405"
+    contract_name = "SA406"
     # futures_df = read_czce_futures_txt('../data/CZCE/ALLFUTURES2024.txt')
     # futures_df.to_csv('../data/CZCE/ALLFUTURES2024.csv')
     futures_df = pd.read_csv("../data/CZCE/ALLFUTURES2024.csv")
@@ -151,15 +181,22 @@ if __name__ == "__main__":
     options_df = options_df[options_df["合约代码"].str.contains(contract_name)]
     options_data = CustomPandasData(dataname=options_df)
     # 添加期货和期权数据到 cerebro
-    cerebro.adddata(options_data, name="Option")
     cerebro.adddata(futures_data, name="Futures")
 
+    options_code = options_df["合约代码"].drop_duplicates()
+    for contract in options_code:
+        option_df = options_df[options_df['合约代码'] == contract]
+        option_data = CustomPandasData(dataname=option_df)
+        cerebro.adddata(option_data, name=contract)
+
+    cerebro.adddata(options_data, name="Option")
 
     # 添加策略
     cerebro.addstrategy(OptionFuturesStrategy)
 
     # 设置初始现金
-    cerebro.broker.set_cash(1000000)
+    cerebro.broker.set_cash(10000)
+    cerebro.broker.set_coc(True)
     cerebro.broker.setcommission(commission=0.00025,  # 保证金比例
                                  mult=10.0, leverage=10, automargin=True, commtype=bt.CommInfoBase.COMM_PERC)
     cerebro.addsizer(bt.sizers.FixedSize, stake=1)
@@ -169,11 +206,11 @@ if __name__ == "__main__":
     results = cerebro.run()
     print('Ending Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    # strat = results[0]
-    # portfolio_stats = strat.analyzers.getbyname('PyFolio')
-    # returns, positions, transactions, gross_lev = portfolio_stats.get_pf_items()
-    # returns.index = returns.index.tz_convert(None)
-    #
-    # quantstats.reports.html(returns,output="option_trading.html",title="SA2405 test report")
+    strat = results[0]
+    portfolio_stats = strat.analyzers.getbyname('PyFolio')
+    returns, positions, transactions, gross_lev = portfolio_stats.get_pf_items()
+    returns.index = returns.index.tz_convert(None)
+
+    quantstats.reports.html(returns, output="option_trading_new.html", title="SA2406 test report")
     # 绘制图形
-    cerebro.plot(style='candlestick')
+    # cerebro.plot(style='candlestick')

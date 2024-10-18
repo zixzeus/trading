@@ -22,11 +22,11 @@ class HistoryData:
     def date_range(self, params):
         self._date_range = pd.date_range(params[0], params[1])
 
-    def history_vol(self):
+    def history_vol(self, window=21):
         if self.date_range is not None:
             self.data = self.data[self.data['Date'].isin(self.date_range)]
         self.data["return"] = np.log(self.data["Price"] / self.data["Price"].shift(1))
-        self.data["vol"] = self.data["return"].rolling(21).std() * sqrt(252)
+        self.data["vol"] = self.data["return"].rolling(window=window).std() * sqrt(252)
 
     def show(self, type):
         if type == "VOL":
@@ -218,52 +218,48 @@ class VolCalculator:
 
 
 if __name__ == '__main__':
-    option_price = 100
-    current_price = 6036
-    strike_price = 5000
-    expiration_date = ql.Date(25, 1, 2024)
-    evaluate_date = ql.Date(2, 1, 2024)
-    left_time = 9
-    volatility = 0.5
-    option_type = ql.Option.Call
+    # option_price = 100
+    # current_price = 6036
+    # strike_price = 5000
+    # expiration_date = ql.Date(25, 1, 2024)
+    # evaluate_date = ql.Date(2, 1, 2024)
+    # left_time = 9
+    # volatility = 0.5
+    # option_type = ql.Option.Call
+    #
+    # ca = VolCalculator(current_price, strike_price, left_time, volatility, option_type)
+    # print(ca.probability())
+    #
+    # print(ca.predicate_price_span(0.8))
+    #
+    #
+    # # start_time = time.time()
+    # def a():
+    #     Iv = ImVolCalculator()
+    #     # Iv.check_initialized()
+    #     Iv.option_price = option_price
+    #     Iv.strike_price = strike_price
+    #     Iv.expiration_date = expiration_date
+    #     Iv.current_price = current_price
+    #     Iv.evaluation_date = evaluate_date
+    #     Iv.option_type = option_type
+    #
+    #     # for option in range(190, 200):
+    #     #     for strike in range(24000, 25000):
+    #     #         Iv.option_price = option
+    #     #         Iv.strike_price = strike
+    #     Iv.load_bs_model()
+    #     Iv.check_initialized()
+    #     Iv.get_greek()
+    #     print(Iv.greek)
+    #
+    # execution_time = timeit.timeit("a()", globals=locals(), number=1)
+    # print("Execution Time: ", execution_time)
 
-    ca = VolCalculator(current_price, strike_price, left_time, volatility, option_type)
-    print(ca.probability())
-
-    print(ca.predicate_price_span(0.8))
-
-
-    # start_time = time.time()
-    def a():
-        Iv = ImVolCalculator()
-        # Iv.check_initialized()
-        Iv.option_price = option_price
-        Iv.strike_price = strike_price
-        Iv.expiration_date = expiration_date
-        Iv.current_price = current_price
-        Iv.evaluation_date = evaluate_date
-        Iv.option_type = option_type
-
-
-        # for option in range(190, 200):
-        #     for strike in range(24000, 25000):
-        #         Iv.option_price = option
-        #         Iv.strike_price = strike
-        Iv.load_bs_model()
-        Iv.check_initialized()
-        Iv.get_greek()
-        print(Iv.greek)
-
-
-    # print(Iv.implied_volatility)
-    # print(Iv.greek)
-    execution_time = timeit.timeit("a()", globals=locals(), number=1)
-    print("Execution Time: ", execution_time)
-
-    # filepath = "../data/silver.csv"
-    # silver_his = HistoryData(filepath)
-    # silver_his.date_range = ("2012-01-1", "2023-12-31")
-    # silver_his.history_vol()
-    # silver_his.show("VOL")
-    # silver_his.show("MONTH_VOL")
-    # silver_his.show("VOL_DIS")
+    filepath = "../data/silver.csv"
+    silver_his = HistoryData(filepath)
+    silver_his.date_range = ("2012-01-1", "2023-12-31")
+    silver_his.history_vol()
+    silver_his.show("VOL")
+    silver_his.show("MONTH_VOL")
+    silver_his.show("VOL_DIS")
