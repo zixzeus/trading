@@ -165,6 +165,7 @@ class ImVolCalculator:
         self.greek["Delta"] = self.option_engine.delta()
         self.greek["Gamma"] = self.option_engine.gamma()
         self.greek["Theta"] = self.option_engine.thetaPerDay()
+        self.greek["Vega"] = self.option_engine.vega()
 
 
 class VolCalculator:
@@ -214,18 +215,109 @@ class VolCalculator:
             return p_above
 
 
+class OptionCalculator:
+    risk_free_rate = 0.015
+    dividend_rate = 0.0
+
+    def __init__(self):
+        self._option_price = None
+        self._current_price = None
+        self._strike_price = None
+        self._expiration_date = None
+        self._evaluation_date = None
+        self._option_type = None
+        self.random_process = None
+        self.option_engine = None
+        self._implied_volatility = 0
+        self.greek = {}
+
+    @property
+    def option_price(self):
+        return self._option_price
+
+    @option_price.setter
+    def option_price(self, params):
+        self._option_price = params
+
+    @property
+    def implied_volatility(self):
+        return self._implied_volatility
+
+    @implied_volatility.setter
+    def implied_volatility(self, volatility):
+        self._implied_volatility = volatility
+
+    @property
+    def current_price(self):
+        return self._current_price
+
+    @current_price.setter
+    def current_price(self, params):
+        self._current_price = params
+
+    @property
+    def strike_price(self):
+        return self._strike_price
+
+    @strike_price.setter
+    def strike_price(self, params):
+        self._strike_price = params
+
+    @property
+    def expiration_date(self):
+        return self._expiration_date
+
+    @expiration_date.setter
+    def expiration_date(self, params):
+        self._expiration_date = params
+
+    @property
+    def evaluation_date(self):
+        return self._evaluation_date
+
+    @evaluation_date.setter
+    def evaluation_date(self, params):
+        self._evaluation_date = params
+
+    @property
+    def option_type(self):
+        return self._option_type
+
+    @option_type.setter
+    def option_type(self, params):
+        self._option_type = params
+
+    def load_bs_model(self):
+        calendar = ql.China()
+        day_count = ql.Actual365Fixed()
+        calculation_date = calendar.adjust(self.evaluation_date)
+        ql.Settings.instance().evaluationDate = calculation_date
+        payoff = ql.PlainVanillaPayoff(self.option_type, self.strike_price)
+        exercise = ql.EuropeanExercise(self.expiration_date)
+        self.option_engine = ql.VanillaOption(payoff, exercise)
+
+        spot_handle = ql.QuoteHandle(ql.SimpleQuote(self.current_price))
+        flat_ts = ql.YieldTermStructureHandle(ql.FlatForward(calculation_date, self.risk_free_rate, day_count))
+        flat_vol_ts = ql.BlackVolTermStructureHandle(
+            ql.BlackConstantVol(calculation_date, calendar, self.implied_volatility, day_count))
+        self.random_process = ql.BlackScholesProcess(spot_handle, flat_ts, flat_vol_ts)
+
+        self.option_engine.setPricingEngine(ql.AnalyticEuropeanEngine(self.random_process))
+
+    def get_option_price(self):
+        self.option_price = self.option_engine.NPV()
+
+
 # 输入期权相关信息
 
 
 if __name__ == '__main__':
-    # option_price = 100
-    # current_price = 6036
-    # strike_price = 5000
-    # expiration_date = ql.Date(25, 1, 2024)
-    # evaluate_date = ql.Date(2, 1, 2024)
-    # left_time = 9
-    # volatility = 0.5
-    # option_type = ql.Option.Call
+    option_price = 25.5
+    current_price = 3150
+    strike_price = 3250
+    expiration_date = ql.Date(25, 11, 2024)
+    evaluate_date = ql.Date(16, 11, 2024)
+    option_type = ql.Option.Put
     #
     # ca = VolCalculator(current_price, strike_price, left_time, volatility, option_type)
     # print(ca.probability())
@@ -235,14 +327,33 @@ if __name__ == '__main__':
     #
     # # start_time = time.time()
     # def a():
-    #     Iv = ImVolCalculator()
-    #     # Iv.check_initialized()
-    #     Iv.option_price = option_price
-    #     Iv.strike_price = strike_price
-    #     Iv.expiration_date = expiration_date
-    #     Iv.current_price = current_price
-    #     Iv.evaluation_date = evaluate_date
-    #     Iv.option_type = option_type
+
+    # Iv = ImVolCalculator()
+    # # Iv.check_initialized()
+    # Iv.option_price = option_price
+    # Iv.strike_price = strike_price
+    # Iv.expiration_date = expiration_date
+    # Iv.current_price = current_price
+    # Iv.evaluation_date = evaluate_date
+    # Iv.option_type = option_type
+    # Iv.load_bs_model()
+    # Iv.check_initialized()
+    # Iv.get_greek()
+    # Iv.get_implied_volatility()
+    # print(Iv.implied_volatility)
+    # print(Iv.greek)
+
+    OptionC = OptionCalculator()
+    # OptionC.option_price = option_price
+    OptionC.implied_volatility = 0.15311265595727777
+    OptionC.strike_price = strike_price
+    OptionC.expiration_date = expiration_date
+    OptionC.current_price = current_price
+    OptionC.evaluation_date = evaluate_date
+    OptionC.option_type = option_type
+    OptionC.load_bs_model()
+    OptionC.get_option_price()
+    print(OptionC.option_price)
     #
     #     # for option in range(190, 200):
     #     #     for strike in range(24000, 25000):
@@ -256,10 +367,10 @@ if __name__ == '__main__':
     # execution_time = timeit.timeit("a()", globals=locals(), number=1)
     # print("Execution Time: ", execution_time)
 
-    filepath = "../data/silver.csv"
-    silver_his = HistoryData(filepath)
-    silver_his.date_range = ("2012-01-1", "2023-12-31")
-    silver_his.history_vol()
-    silver_his.show("VOL")
-    silver_his.show("MONTH_VOL")
-    silver_his.show("VOL_DIS")
+    # filepath = "../data/silver.csv"
+    # silver_his = HistoryData(filepath)
+    # silver_his.date_range = ("2012-01-1", "2023-12-31")
+    # silver_his.history_vol()
+    # silver_his.show("VOL")
+    # silver_his.show("MONTH_VOL")
+    # silver_his.show("VOL_DIS")

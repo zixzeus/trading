@@ -170,7 +170,7 @@ class CZCEOptionData(OptionData):
         self.part_1.columns = [col.rstrip() for col in self.part_1.columns]
         self.part_1.rename(columns={'合约代码': '合约名称', '今收盘': '收盘价', 'DELTA': 'Delta'}, inplace=True)
         self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"])
-        self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"].str.replace(',', ''))
+        self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"].replace(',', ''))
         self.part_2 = pd.DataFrame()
         self.part_2["合约系列"] = self.part_1['合约名称'].str.extract(r'([A-Z]+\d+)').drop_duplicates().reset_index(
             drop=True)
@@ -201,7 +201,7 @@ def fetch_data_from_exchange(exchange, trade_date):
 # 获取三个交易所的数据
 def fetch_all_data():
     exchanges = [SHFEOptionData, CZCEOptionData, DCEOptionData, GFEXOptionData]
-    trade_dates = ["20241018" for _ in range(4)]
+    trade_dates = ["20250121" for _ in range(4)]
     # 使用 ThreadPoolExecutor 进行多线程
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # 提交所有的任务并获取结果

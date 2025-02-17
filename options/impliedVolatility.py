@@ -3,11 +3,11 @@ import time
 # 设置基础参数
 expiration_date = ql.Date(24, 1, 2024)  # 期权到期日
 spot_price = 6036  # 标的资产当前价格
-strike_price = 5000  # 执行价格
+strike_price = 7000  # 执行价格
 dividend_rate = 0.0  # 股息率
 option_type = ql.Option.Call  # 期权类型：看涨期权
 risk_free_rate = 0.015  # 无风险利率
-market_price = 9000  # 市场上的期权价格
+market_price = 90  # 市场上的期权价格
 
 # 设置 QuantLib 的日期结构
 calendar = ql.China()
@@ -62,6 +62,7 @@ american_option = ql.VanillaOption(payoff, exercise)
 binomial_steps = 1000
 american_option.setPricingEngine(ql.BinomialVanillaEngine(bsm_process, "crr", binomial_steps))
 implied_vol = american_option.impliedVolatility(market_price, bsm_process)
+vega = american_option.vega()
 delta = american_option.delta()
 theta = american_option.theta() / 365
 gamma = american_option.gamma()

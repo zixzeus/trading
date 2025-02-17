@@ -184,21 +184,21 @@ def calculate_profit_ratio(row, atm_call_price, atm_put_price):
 
 if __name__ == "__main__":
     # def a():
-    #     file = "../data/MarketData_Year_2024/所内合约行情报表2024.3.xls"
-    #     SA = SHFEHistOptionAnalysis(file).load_data()
-    #     SA.update_all_contracts()
-    #     # option_df = SA.add_greek("ag2406")
-    #     # ag_option_df = option_df[option_df['Contract'] == 'ag2406C6300'].copy()
-    #     # SA.plot(ag_option_df)
-    #     print(SA.data)
-    #     SA.data.to_excel("../data/MarketData_Year_2024/market_date_test.3.xlsx")
+    file = "../data/MarketData_Year_2024/所内合约行情报表2024.3.xls"
+    SA = SHFEHistOptionAnalysis(file).load_data()
+    SA.update_all_contracts()
+    # option_df = SA.add_greek("ag2406")
+    # ag_option_df = option_df[option_df['Contract'] == 'ag2406C6300'].copy()
+    # SA.plot(ag_option_df)
+    print(SA.data)
+    SA.data.to_excel("../data/MarketData_Year_2024/market_date_hist.3.xlsx")
 
-    option_df = pd.read_table('../data/CZCE/ALLOPTIONS2023.txt', skiprows=1, sep="|", low_memory=False)
-    print(option_df)
+    # option_df = pd.read_table('../data/CZCE/ALLOPTIONS2023.txt', skiprows=1, sep="|", low_memory=False)
+    # print(option_df)
     # execution_time = timeit.timeit("a()", globals=locals(), number=1)
     # print("Execution Time: ", execution_time)
     # expiry_date = get_option_expiry(2024, 11)
     #
-    option_czce_hist_df = ak.option_czce_hist(symbol="SA", year="2023")
+    # option_czce_hist_df = ak.option_czce_hist(symbol="SA", year="2023")
     # print(option_czce_hist_df)
     # print(f"2024年9月的期权到期日为: {expiry_date}")

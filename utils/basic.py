@@ -54,10 +54,13 @@ def read_czce_futures_txt(file_path):
         columns={'今开盘': 'Open', '最高价': 'High', '最低价': 'Low', '今收盘': 'Close', '成交量(手)': 'Volume',
                  '持仓量': 'OpenInterest'},
         inplace=True)
-    futures_df.set_index('交易日期', inplace=True)
-    futures_df.index = pd.to_datetime(futures_df.index)
+    if '交易日期' in futures_df.columns:
+        futures_df.set_index('交易日期', inplace=True)
+        futures_df.index = pd.to_datetime(futures_df.index)
+    futures_df.iloc[:, 0] = futures_df.iloc[:, 0].apply(
+        lambda x: x.rstrip())
     futures_df.iloc[:, 1:] = futures_df.iloc[:, 1:].apply(
-        lambda x: x.str.replace(',', '').apply(pd.to_numeric, errors='coerce'))
+        lambda x: x.astype(str).str.replace(',', '').apply(pd.to_numeric, errors='coerce'))
     return futures_df
 
 
@@ -68,8 +71,9 @@ def read_czce_options_txt(file_path):
         columns={'今开盘': 'Open', '最高价': 'High', '最低价': 'Low', '今收盘': 'Close', '成交量(手)': 'Volume',
                  '持仓量': 'OpenInterest', 'DELTA': 'Delta'},
         inplace=True)
-    options_df.set_index('交易日期', inplace=True)
-    options_df.index = pd.to_datetime(options_df.index)
+    if '交易日期' in options_df.columns:
+        options_df.set_index('交易日期', inplace=True)
+        options_df.index = pd.to_datetime(options_df.index)
     options_df.iloc[:, 1:] = options_df.iloc[:, 1:].apply(
         lambda x: x.astype(str).str.replace(',', '').apply(pd.to_numeric, errors='coerce'))
     return options_df
