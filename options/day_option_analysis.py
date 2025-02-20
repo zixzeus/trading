@@ -201,7 +201,7 @@ def fetch_data_from_exchange(exchange, trade_date):
 # 获取三个交易所的数据
 def fetch_all_data():
     exchanges = [SHFEOptionData, CZCEOptionData, DCEOptionData, GFEXOptionData]
-    trade_dates = ["20250121" for _ in range(4)]
+    trade_dates = ["20250219" for _ in range(4)]
     # 使用 ThreadPoolExecutor 进行多线程
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # 提交所有的任务并获取结果
