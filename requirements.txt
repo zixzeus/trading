@@ -13,3 +13,4 @@ scipy
 akshare
 blinker
 quantstats
+debugpy 
