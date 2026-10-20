@@ -1,12 +1,72 @@
+import requests
 import akshare as ak
+
+# --- Requests Monkey-Patch to bypass bot detection ---
+# Use a thread-local session or just individual requests to avoid session issues in threads
+_original_post = requests.post
+_original_get = requests.get
+
+def patched_post(url, *args, **kwargs):
+    headers = kwargs.get("headers", {}).copy() # Use a copy to avoid side effects
+
+    # Force modern browser headers
+    headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    headers["Accept"] = "application/json, text/javascript, */*; q=0.01"
+    headers["Accept-Language"] = "zh-CN,zh;q=0.9,en;q=0.8"
+
+    if "dce.com.cn" in url:
+        headers["Referer"] = "http://www.dce.com.cn/publicweb/quotesdata/dayQuotesCh.html"
+        headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Origin"] = "http://www.dce.com.cn"
+    elif "gfex.com.cn" in url:
+        headers["Referer"] = "http://www.gfex.com.cn/gfex/rihq/hqsj_tjsj.shtml"
+        headers["Origin"] = "http://www.gfex.com.cn"
+
+    kwargs["headers"] = headers
+
+    try:
+        response = _original_post(url, *args, **kwargs)
+        if response.status_code == 412:
+            # Try once more with a temporary session if we get 412
+            with requests.Session() as s:
+                s.get("http://www.dce.com.cn/publicweb/quotesdata/dayQuotesCh.html", headers=headers, timeout=5)
+                return s.post(url, *args, **kwargs)
+        return response
+    except Exception as e:
+        print(f"Request Error for {url}: {e}")
+        raise
+
+def patched_get(url, *args, **kwargs):
+    headers = kwargs.get("headers", {}).copy()
+    headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    kwargs["headers"] = headers
+    return _original_get(url, *args, **kwargs)
+
+requests.post = patched_post
+requests.get = patched_get
+# --- End Patch ---
+
 try:
-    from calculator import VolCalculator, ImVolCalculator
+    from akshare.option.option_commodity import (
+        option_hist_dce,
+        option_hist_czce,
+        option_hist_shfe,
+        option_hist_gfex,
+        option_vol_shfe,
+        option_vol_gfex
+    )
 except ImportError:
-    from options.calculator import VolCalculator, ImVolCalculator
+    pass
+
+if __package__:
+    from .calculator import VolCalculator, ImVolCalculator
+else:
+    from calculator import VolCalculator, ImVolCalculator
 import QuantLib as ql
 import pandas as pd
 import concurrent.futures
 import os
+import datetime
 
 class OptionData:
     market_list = []
@@ -168,19 +228,30 @@ class DCEOptionData(OptionData):
     exchange_name = "DCE"
 
     def get_data(self):
-        self.part_1, self.part_2 = ak.option_dce_daily(self.symbol, self.trade_date)
+        # 使用新的接口函数
+        self.part_1 = option_hist_dce(self.symbol, self.trade_date)
         
         # 检查是否获取到数据
         if self.part_1.empty:
+            self.part_2 = pd.DataFrame()
             return self.part_1, self.part_2
             
+        # 统一列名以保持旧代码兼容性
+        self.part_1.rename(columns={'合约': '合约名称'}, inplace=True)
+
         # 处理收盘价列
         if '收盘价' in self.part_1.columns:
-            self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"].str.replace(',', ''), errors='coerce')
+            self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"], errors='coerce')
         
-        # 处理Delta列，将'-'转换为NaN，然后转换为数值类型
+        # 处理Delta列
         if 'Delta' in self.part_1.columns:
-            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"].replace('-', pd.NA), errors='coerce')
+            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"], errors='coerce')
+
+        # 模拟旧接口的 part_2 (合约系列)
+        self.part_2 = self.part_1["合约名称"].str.extract(r"([a-zA-Z]+[0-9]+)").drop_duplicates()
+        self.part_2.columns = ["合约系列"]
+        self.part_2.reset_index(inplace=True, drop=True)
+
         return self.part_1, self.part_2
 
 
@@ -191,7 +262,9 @@ class SHFEOptionData(OptionData):
     exchange_name = "SHFE"
 
     def get_data(self):
-        self.part_1, self.part_2 = ak.option_shfe_daily(self.symbol, self.trade_date)
+        # 使用新的接口函数
+        self.part_1 = option_hist_shfe(self.symbol, self.trade_date)
+        self.part_2 = option_vol_shfe(self.symbol, self.trade_date)
         
         # 检查是否获取到数据
         if self.part_1.empty:
@@ -199,13 +272,15 @@ class SHFEOptionData(OptionData):
             
         self.part_1.rename(columns={'合约代码': '合约名称', '德尔塔': 'Delta'}, inplace=True)
         
-        # 处理Delta列，将'-'转换为NaN，然后转换为数值类型
+        # 处理Delta列
         if 'Delta' in self.part_1.columns:
-            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"].replace('-', pd.NA), errors='coerce')
+            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"], errors='coerce')
         
         if not self.part_2.empty and '合约系列' in self.part_2.columns:
             self.part_2["合约系列"] = self.part_2["合约系列"].str.rstrip()
-            self.part_2 = self.part_2.drop(self.part_2.index[-1])
+            # 移除最后一行 (小计/合计) 如果存在
+            if len(self.part_2) > 0 and self.part_2.iloc[-1]["合约系列"] in ["小计", "合计"]:
+                self.part_2 = self.part_2.drop(self.part_2.index[-1])
         return self.part_1, self.part_2
 
 
@@ -217,7 +292,8 @@ class CZCEOptionData(OptionData):
     exchange_name = "CZCE"
 
     def get_data(self):
-        self.part_1 = ak.option_czce_daily(symbol=self.symbol, trade_date=self.trade_date)
+        # 使用新的接口函数
+        self.part_1 = option_hist_czce(symbol=self.symbol, trade_date=self.trade_date)
         
         # 检查是否获取到数据
         if self.part_1.empty:
@@ -227,13 +303,13 @@ class CZCEOptionData(OptionData):
         self.part_1.columns = [col.rstrip() for col in self.part_1.columns]
         self.part_1.rename(columns={'合约代码': '合约名称', '今收盘': '收盘价', 'DELTA': 'Delta'}, inplace=True)
         
-        # 处理Delta列，将'-'转换为NaN，然后转换为数值类型
+        # 处理Delta列
         if 'Delta' in self.part_1.columns:
-            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"].replace('-', pd.NA), errors='coerce')
+            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"], errors='coerce')
         
         # 处理收盘价列
         if '收盘价' in self.part_1.columns:
-            self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"].replace(',', ''), errors='coerce')
+            self.part_1["收盘价"] = pd.to_numeric(self.part_1["收盘价"], errors='coerce')
         
         self.part_2 = pd.DataFrame()
         if '合约名称' in self.part_1.columns:
@@ -248,8 +324,9 @@ class GFEXOptionData(OptionData):
     exchange_name = "GFEX"
 
     def get_data(self):
-        self.part_1 = ak.option_gfex_daily(symbol=self.symbol, trade_date=self.trade_date)
-        self.part_2 = ak.option_gfex_vol_daily(symbol=self.symbol, trade_date=self.trade_date)
+        # 使用新的接口函数
+        self.part_1 = option_hist_gfex(symbol=self.symbol, trade_date=self.trade_date)
+        self.part_2 = option_vol_gfex(symbol=self.symbol, trade_date=self.trade_date)
         
         # 检查是否获取到数据
         if self.part_1 is None:
@@ -257,9 +334,9 @@ class GFEXOptionData(OptionData):
         if self.part_2 is None:
             self.part_2 = pd.DataFrame()
             
-        # 处理Delta列，将'-'转换为NaN，然后转换为数值类型
+        # 处理Delta列
         if not self.part_1.empty and 'Delta' in self.part_1.columns:
-            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"].replace('-', pd.NA), errors='coerce')
+            self.part_1["Delta"] = pd.to_numeric(self.part_1["Delta"], errors='coerce')
         return self.part_1, self.part_2
 
 
@@ -274,8 +351,18 @@ def fetch_data_from_exchange(exchange, trade_date):
 
 # 获取三个交易所的数据
 def fetch_all_data():
+    # 获取不晚于今天的最新交易日；日行情发布后可分析当天数据
+    try:
+        trade_date_df = ak.tool_trade_date_hist_sina()
+        last_trade_date = trade_date_df[trade_date_df["trade_date"] <= datetime.date.today()].iloc[-1]["trade_date"].strftime("%Y%m%d")
+    except Exception as e:
+        print(f"获取交易日历失败: {e}，将使用今天日期作为后备")
+        last_trade_date = datetime.date.today().strftime("%Y%m%d")
+
+    print(f"设定分析日期为最近交易日: {last_trade_date}")
+
     exchanges = [SHFEOptionData, CZCEOptionData, DCEOptionData, GFEXOptionData]
-    trade_dates = ["20250801" for _ in range(4)]
+    trade_dates = [last_trade_date for _ in range(len(exchanges))]
     
     # 使用绝对路径
 
